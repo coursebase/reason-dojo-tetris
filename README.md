@@ -1,15 +1,11 @@
-Snake!
+# Tetris!
 
-* Arrow keys to change direction
-* Game over if you run into the wall or your own tail
-* Put an apple somewhere on the map and eat them to grow longer lol
-* Press space to pause or start over from game over state
+## Controls
 
-Bonus stuff:
-
-* Keep apple eating score 
-* Difficulty levels
-* Random obstacles!
+- Up: Rotate 
+- Left: Move left
+- Right: Move right
+- Down: Move down (or drop it lol)
 
 We'll be using Reprocessing. Check out the docs here:
 https://schmavery.github.io/reprocessing/index.html
