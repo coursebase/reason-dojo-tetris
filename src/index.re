@@ -214,6 +214,23 @@ module Board = {
   let next = state => (state.currentPiece, state.board);
 };
 
+let makeRandomPiece = () => {
+  let getRandomOrientation = () =>
+    switch (Random.int(4)) {
+    | 0 => Piece.Up
+    | 1 => Piece.Down
+    | 2 => Piece.Left
+    | 3 => Piece.Right
+    | _ => Piece.Up
+    };
+  let piece = Piece.random();
+  (
+    piece,
+    getRandomOrientation(),
+    (boardWidth / 2 - Piece.getWidth(piece, Piece.Up) / 2, 0),
+  );
+};
+
 let setup = env => {
   Env.size(
     ~width=boardWidth * pointSize,
@@ -223,7 +240,7 @@ let setup = env => {
   {
     status: Playing,
     stepTimer: 0.0,
-    currentPiece: (Piece.random(), Piece.Up, (0, 0)),
+    currentPiece: makeRandomPiece(),
     board: Board.make(),
   };
 };
