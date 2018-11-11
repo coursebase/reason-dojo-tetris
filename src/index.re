@@ -61,37 +61,57 @@ module Piece = {
     | L => Utils.color(~r=255, ~g=146, ~b=43, ~a=255)
     };
 
+  let getShape = (piece, orientation) =>
+    switch (piece, orientation) {
+    | (I, Left)
+    | (I, Right) => [[1, 1, 1, 1]]
+    | (I, Up)
+    | (I, Down) => [[1], [1], [1], [1]]
+    | (O, _) => [[1, 1], [1, 1]]
+    | (T, Down) => [[0, 1, 0], [1, 1, 1]]
+    | (T, Up) => [[1, 1, 1], [0, 1, 0]]
+    | (T, Left) => [[0, 1], [1, 1], [0, 1]]
+    | (T, Right) => [[1, 0], [1, 1], [1, 0]]
+    | (S, Up)
+    | (S, Down) => [[0, 1, 1], [1, 1, 0]]
+    | (S, Left)
+    | (S, Right) => [[1, 0], [1, 1], [0, 1]]
+    | (Z, Up)
+    | (Z, Down) => [[1, 1, 0], [0, 1, 1]]
+    | (Z, Left)
+    | (Z, Right) => [[0, 1], [1, 1], [1, 0]]
+    | (J, Right) => [[1, 0, 0], [1, 1, 1]]
+    | (J, Left) => [[1, 1, 1], [0, 0, 1]]
+    | (J, Up) => [[0, 1], [0, 1], [1, 1]]
+    | (J, Down) => [[1, 1], [1, 0], [1, 0]]
+    | (L, Left) => [[0, 0, 1], [1, 1, 1]]
+    | (L, Right) => [[1, 1, 1], [1, 0, 0]]
+    | (L, Up) => [[1, 0], [1, 0], [1, 1]]
+    | (L, Down) => [[1, 1], [0, 1], [0, 1]]
+    };
+
+  let getPoints = (piece, orientation, point) => {
+    let (x, y) = point;
+    let shape = getShape(piece, orientation);
+    let points = ref([]);
+    List.iteri(
+      (idx, sublist) =>
+        List.iteri(
+          (idx2, item) =>
+            if (item == 1) {
+              points := [(x + idx2, y + idx), ...points^];
+            },
+          sublist,
+        ),
+      shape,
+    );
+    points^;
+  };
+
   /* You'll have to implement orientation lol */
   let draw = (~piece, ~orientation, ~point, env) => {
     let (x, y) = point;
-    let shape =
-      switch (piece, orientation) {
-      | (I, Left)
-      | (I, Right) => [[1, 1, 1, 1]]
-      | (I, Up)
-      | (I, Down) => [[1], [1], [1], [1]]
-      | (O, _) => [[1, 1], [1, 1]]
-      | (T, Down) => [[0, 1, 0], [1, 1, 1]]
-      | (T, Up) => [[1, 1, 1], [0, 1, 0]]
-      | (T, Left) => [[0, 1], [1, 1], [0, 1]]
-      | (T, Right) => [[1, 0], [1, 1], [1, 0]]
-      | (S, Up)
-      | (S, Down) => [[0, 1, 1], [1, 1, 0]]
-      | (S, Left)
-      | (S, Right) => [[1, 0], [1, 1], [0, 1]]
-      | (Z, Up)
-      | (Z, Down) => [[1, 1, 0], [0, 1, 1]]
-      | (Z, Left)
-      | (Z, Right) => [[0, 1], [1, 1], [1, 0]]
-      | (J, Right) => [[1, 0, 0], [1, 1, 1]]
-      | (J, Left) => [[1, 1, 1], [0, 0, 1]]
-      | (J, Up) => [[0, 1], [0, 1], [1, 1]]
-      | (J, Down) => [[1, 1], [1, 0], [1, 0]]
-      | (L, Left) => [[0, 0, 1], [1, 1, 1]]
-      | (L, Right) => [[1, 1, 1], [1, 0, 0]]
-      | (L, Up) => [[1, 0], [1, 0], [1, 1]]
-      | (L, Down) => [[1, 1], [0, 1], [0, 1]]
-      };
+    let shape = getShape(piece, orientation);
     let rowCount = ref(0);
     let columnCount = ref(0);
     List.iter(
@@ -172,6 +192,7 @@ type state = {
   stepTimer: float,
   currentPiece: (Piece.t, Piece.orientation, point),
   pastPieces: list((Piece.t, Piece.orientation, point)),
+  collisionPoints: list(point),
   board: list(list(tile)),
 };
 
@@ -235,16 +256,29 @@ module Board = {
   };
 
   let next = state => {
-    let (p, orientation, (_, y)) = state.currentPiece;
-    let currentY = Piece.getHeight(p, orientation) + y;
-    let isReachingBottom = currentY == boardHeight;
+    let (p, orientation, (x, y)) = state.currentPiece;
+    let newPoints = Piece.getPoints(p, orientation, (x, y + 1));
+    let isColliding =
+      List.filter(
+        point =>
+          List.exists(
+            collisionPoint => collisionPoint == point,
+            state.collisionPoints,
+          ),
+        newPoints,
+      )
+      != [];
 
-    if (isReachingBottom) {
+    if (isColliding) {
       {
-        /* state; */
         ...state,
         currentPiece: makeRandomPiece(),
         pastPieces: List.append(state.pastPieces, [state.currentPiece]),
+        collisionPoints:
+          List.append(
+            state.collisionPoints,
+            Piece.getPoints(p, orientation, (x, y)),
+          ),
       };
     } else {
       {...state, currentPiece: stepPiece(state)};
@@ -263,6 +297,19 @@ let setup = env => {
     stepTimer: 0.0,
     currentPiece: makeRandomPiece(),
     pastPieces: [],
+    collisionPoints: [
+      (0, 17),
+      (1, 17),
+      (2, 17),
+      (3, 17),
+      (4, 17),
+      (5, 17),
+      (6, 17),
+      (7, 17),
+      (8, 17),
+      (9, 17),
+      (10, 17),
+    ],
     board: Board.make(),
   };
 };
