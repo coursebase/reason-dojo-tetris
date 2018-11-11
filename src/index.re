@@ -78,7 +78,7 @@ module Piece = {
       | (S, Up)
       | (S, Down) => [[0, 1, 1], [1, 1, 0]]
       | (S, Left)
-      | (S, Right) => [[0, 1, 1], [1, 1, 0]]
+      | (S, Right) => [[1, 0], [1, 1], [0, 1]]
       | (Z, Up)
       | (Z, Down) => [[1, 1, 0], [0, 1, 1]]
       | (Z, Left)
@@ -276,9 +276,19 @@ let moveRight = piece => {
     piece : (p, orientation, (x + 1, y));
 };
 
+let rotate = orientation =>
+  switch (orientation) {
+  | Piece.Up => Piece.Right
+  | Piece.Right => Piece.Down
+  | Piece.Down => Piece.Left
+  | Piece.Left => Piece.Up
+  };
+
 let keyPressed = (state, env) =>
   switch (Env.keyCode(env)) {
-  | Up => state
+  | Up =>
+    let (p, orientation, (x, y)) = state.currentPiece;
+    {...state, currentPiece: (p, rotate(orientation), (x, y))};
   | Down => state
   | Left => {...state, currentPiece: moveLeft(state.currentPiece)}
   | Right => {...state, currentPiece: moveRight(state.currentPiece)}
