@@ -62,17 +62,35 @@ module Piece = {
     };
 
   /* You'll have to implement orientation lol */
-  let draw = (~piece, ~orientation as _, ~point, env) => {
+  let draw = (~piece, ~orientation, ~point, env) => {
     let (x, y) = point;
     let shape =
-      switch (piece) {
-      | I => [[1, 1, 1, 1]]
-      | O => [[1, 1], [1, 1]]
-      | T => [[0, 1, 0], [1, 1, 1]]
-      | S => [[0, 1, 1], [1, 1, 0]]
-      | Z => [[1, 1, 0], [0, 1, 1]]
-      | J => [[1, 0, 0], [1, 1, 1]]
-      | L => [[0, 0, 1], [1, 1, 1]]
+      switch (piece, orientation) {
+      | (I, Left)
+      | (I, Right) => [[1, 1, 1, 1]]
+      | (I, Up)
+      | (I, Down) => [[1], [1], [1], [1]]
+      | (O, _) => [[1, 1], [1, 1]]
+      | (T, Down) => [[0, 1, 0], [1, 1, 1]]
+      | (T, Up) => [[1, 1, 1], [0, 1, 0]]
+      | (T, Left) => [[0, 1], [1, 1], [0, 1]]
+      | (T, Right) => [[1, 0], [1, 1], [1, 0]]
+      | (S, Up)
+      | (S, Down) => [[0, 1, 1], [1, 1, 0]]
+      | (S, Left)
+      | (S, Right) => [[0, 1, 1], [1, 1, 0]]
+      | (Z, Up)
+      | (Z, Down) => [[1, 1, 0], [0, 1, 1]]
+      | (Z, Left)
+      | (Z, Right) => [[0, 1], [1, 1], [1, 0]]
+      | (J, Right) => [[1, 0, 0], [1, 1, 1]]
+      | (J, Left) => [[1, 1, 1], [0, 0, 1]]
+      | (J, Up) => [[0, 1], [0, 1], [1, 1]]
+      | (J, Down) => [[1, 1], [1, 0], [1, 0]]
+      | (L, Left) => [[0, 0, 1], [1, 1, 1]]
+      | (L, Right) => [[1, 1, 1], [1, 0, 0]]
+      | (L, Up) => [[1, 0], [1, 0], [1, 1]]
+      | (L, Down) => [[1, 1], [0, 1], [0, 1]]
       };
     let rowCount = ref(0);
     let columnCount = ref(0);
@@ -130,6 +148,14 @@ module Piece = {
     | (L, Down) => 2
     | (L, Left)
     | (L, Right) => 3
+    };
+
+  let getHeight = (piece, orientation): int =>
+    switch (orientation) {
+    | Up
+    | Down => getWidth(piece, Right)
+    | Left
+    | Right => getWidth(piece, Down)
     };
 };
 
@@ -215,8 +241,17 @@ let draw = (state, env) => {
   let newStepTimer = state.stepTimer +. Env.deltaTime(env);
   let isNextStep = newStepTimer > stepInterval;
   let stepTimer = isNextStep ? 0.0 : newStepTimer;
+
+  let (p, orientation, (_, y)) = state.currentPiece;
+  let currentY = Piece.getHeight(p, orientation) + y;
+  let isReachingBottom = currentY == boardHeight;
+
   let (nextPiece, nextBoard) =
-    Board.next({...state, currentPiece: stepPiece(isNextStep, state)});
+    Board.next({
+      ...state,
+      currentPiece:
+        isReachingBottom ? state.currentPiece : stepPiece(isNextStep, state),
+    });
   let (piece, orientation, point) = nextPiece;
   Piece.draw(~piece, ~orientation, ~point, env);
 
