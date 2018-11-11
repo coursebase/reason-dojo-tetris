@@ -102,6 +102,35 @@ module Piece = {
       shape,
     );
   };
+
+  let getWidth = (piece, orientation): int =>
+    switch (piece, orientation) {
+    | (I, Up)
+    | (I, Down) => 1
+    | (I, Left)
+    | (I, Right) => 4
+    | (O, _) => 2
+    | (T, Up)
+    | (T, Down) => 3
+    | (T, Left)
+    | (T, Right) => 2
+    | (S, Up)
+    | (S, Down) => 3
+    | (S, Left)
+    | (S, Right) => 2
+    | (Z, Up)
+    | (Z, Down) => 3
+    | (Z, Left)
+    | (Z, Right) => 2
+    | (J, Up)
+    | (J, Down) => 2
+    | (J, Left)
+    | (J, Right) => 3
+    | (L, Up)
+    | (L, Down) => 2
+    | (L, Left)
+    | (L, Right) => 3
+    };
 };
 
 type status =
@@ -156,9 +185,7 @@ module Board = {
   };
 
   /* You'll need to do a lot of stuff in here */
-  let next = (state) => {
-    (state.currentPiece, state.board);
-  };
+  let next = state => (state.currentPiece, state.board);
 };
 
 let setup = env => {
@@ -203,12 +230,23 @@ module Direction = {
     | Down;
 };
 
+let moveLeft = piece => {
+  let (p, orientation, (x, y)) = piece;
+  x <= 0 ? piece : (p, orientation, (x - 1, y));
+};
+
+let moveRight = piece => {
+  let (p, orientation, (x, y)) = piece;
+  x + Piece.getWidth(p, orientation) >= boardWidth ?
+    piece : (p, orientation, (x + 1, y));
+};
+
 let keyPressed = (state, env) =>
   switch (Env.keyCode(env)) {
   | Up => state
   | Down => state
-  | Left => state
-  | Right => state
+  | Left => {...state, currentPiece: moveLeft(state.currentPiece)}
+  | Right => {...state, currentPiece: moveRight(state.currentPiece)}
   | _ => state
   };
 
