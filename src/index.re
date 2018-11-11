@@ -171,7 +171,31 @@ type state = {
   status,
   stepTimer: float,
   currentPiece: (Piece.t, Piece.orientation, point),
+  pastPieces: list((Piece.t, Piece.orientation, point)),
   board: list(list(tile)),
+};
+
+let stepPiece = state => {
+  let (piece, orientation, point) = state.currentPiece;
+  let (x, y) = point;
+  (piece, orientation, (x, y + 1));
+};
+
+let makeRandomPiece = () => {
+  let getRandomOrientation = () =>
+    switch (Random.int(4)) {
+    | 0 => Piece.Up
+    | 1 => Piece.Down
+    | 2 => Piece.Left
+    | 3 => Piece.Right
+    | _ => Piece.Up
+    };
+  let piece = Piece.random();
+  (
+    piece,
+    getRandomOrientation(),
+    (boardWidth / 2 - Piece.getWidth(piece, Piece.Up) / 2, 0),
+  );
 };
 
 module Board = {
@@ -210,25 +234,22 @@ module Board = {
     );
   };
 
-  /* You'll need to do a lot of stuff in here */
-  let next = state => (state.currentPiece, state.board);
-};
+  let next = state => {
+    let (p, orientation, (_, y)) = state.currentPiece;
+    let currentY = Piece.getHeight(p, orientation) + y;
+    let isReachingBottom = currentY == boardHeight;
 
-let makeRandomPiece = () => {
-  let getRandomOrientation = () =>
-    switch (Random.int(4)) {
-    | 0 => Piece.Up
-    | 1 => Piece.Down
-    | 2 => Piece.Left
-    | 3 => Piece.Right
-    | _ => Piece.Up
+    if (isReachingBottom) {
+      {
+        /* state; */
+        ...state,
+        currentPiece: makeRandomPiece(),
+        pastPieces: List.append(state.pastPieces, [state.currentPiece]),
+      };
+    } else {
+      {...state, currentPiece: stepPiece(state)};
     };
-  let piece = Piece.random();
-  (
-    piece,
-    getRandomOrientation(),
-    (boardWidth / 2 - Piece.getWidth(piece, Piece.Up) / 2, 0),
-  );
+  };
 };
 
 let setup = env => {
@@ -241,14 +262,9 @@ let setup = env => {
     status: Playing,
     stepTimer: 0.0,
     currentPiece: makeRandomPiece(),
+    pastPieces: [],
     board: Board.make(),
   };
-};
-
-let stepPiece = (isNextStep, state) => {
-  let (piece, orientation, point) = state.currentPiece;
-  let (x, y) = point;
-  isNextStep ? (piece, orientation, (x, y + 1)) : state.currentPiece;
 };
 
 let draw = (state, env) => {
@@ -259,20 +275,16 @@ let draw = (state, env) => {
   let isNextStep = newStepTimer > stepInterval;
   let stepTimer = isNextStep ? 0.0 : newStepTimer;
 
-  let (p, orientation, (_, y)) = state.currentPiece;
-  let currentY = Piece.getHeight(p, orientation) + y;
-  let isReachingBottom = currentY == boardHeight;
-
-  let (nextPiece, nextBoard) =
-    Board.next({
-      ...state,
-      currentPiece:
-        isReachingBottom ? state.currentPiece : stepPiece(isNextStep, state),
-    });
-  let (piece, orientation, point) = nextPiece;
+  let newState = isNextStep ? Board.next(state) : state;
+  let (piece, orientation, point) = newState.currentPiece;
   Piece.draw(~piece, ~orientation, ~point, env);
+  List.iter(
+    ((piece, orientation, point)) =>
+      Piece.draw(~piece, ~orientation, ~point, env),
+    newState.pastPieces,
+  );
 
-  {...state, stepTimer, currentPiece: nextPiece, board: nextBoard};
+  {...newState, stepTimer};
 };
 
 module Direction = {
